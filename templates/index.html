@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Proto4web</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body>
+  <h1>Socket.IO Demo</h1>
+  <button onclick="sendData()">update data test</button>
+
+
+<!-- in javascript const/variable set as below and print is console.log-->
+  <script>
+    const socket = io();
+// check the message on the socket and do function ie printing
+    socket.on('connect', function() {
+      console.log('Connected to server');
+    });
+
+    socket.on('user_event', function(data) {
+      console.log('Data update received:', data);
+      // Handle the updated data here
+    });
+
+    function sendData() {
+      const data = { message: 'Hello from client!' };
+      socket.emit('user_event', data);
+      console.log('Data sent to server:', data);
+    }
+  </script>
+</html>

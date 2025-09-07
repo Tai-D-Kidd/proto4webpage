@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Proto4web</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<style>
+  
+  #map {height: 80vh;}
+</style>
+<body>
+  <h1>Demo</h1>
+  <div id="map"></div>
+  
+
+
+<!-- js notes const=constant let = variable and print is console.log-->
+  <script>
+    const user_id = prompt('Enter your user ID:');
+    const socket = io();
+    const map = L.map('map').setView([51.505, -0.09], 13);
+    let loc_markers = {};
+
+
+    // Add OpenStreetMap layer on top c+v
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+    
+    
+    // getting the location with a loop with a time delay
+    setInterval(() => {
+      let loc= navigator.geolocation;
+      if (loc) {
+
+        loc.getCurrentPosition(function(position) {
+
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            // `template string with `${var}` like fstrings
+            console.log(`Latitude: ${lat}, Longitude: ${lon}`);
+          // Send location to flask backend on websocker
+            socket.emit('location_update', { user_id: user_id, latitude: lat, longitude: lon });
+        });
+      } else {
+        alert('Geolocation is not supported by this browser.');
+      }
+    }, 10000); // Update location every 10 seconds
+    
+    socket.on('location_data', function(data) {
+        for (let usr_id in loc_markers) {
+          map.removeLayer(loc_markers[usr_id]);
+        }
+        // removing old markers then resetting array
+        loc_markers = {};
+        //adding new markers
+        for (let user in data) {
+            const loc = data[user];
+            const marker = L.marker([loc.latitude, loc.longitude]).addTo(map)
+            .bindPopup(`${user}`)
+            loc_markers[user] = marker;
+        //moving to main users location
+            if (user=== user_id) {
+                map.setView([loc.latitude, loc.longitude], 13);
+                marker.openPopup();
+            }
+        }
+    })
+
+// check the message on the socket and do function ie printing
+    socket.on('connect', function() {
+      console.log('Connected to server');
+    });
+
+    socket.on('user_event', function(data) {
+      console.log('Data update received:', data);
+      // Handle the updated data here
+    });
+
+    function sendData() {
+      const data = { message: 'Hello from client!' };
+      socket.emit('user_event', data);
+      console.log('Data sent to server:', data);
+    }
+  </script>
+</html>
